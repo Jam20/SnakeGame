@@ -77,10 +77,10 @@ def text_objects(text, font):
     textSurface = font.render(text, True, (0,0,0))
     return textSurface, textSurface.get_rect()
 
-def displayMessage(text):
+def displayMessage(text,x,y):
     textFont = pygame.font.Font('freesansbold.ttf',30)
     TextSurf, TextRect = text_objects(text, textFont)
-    TextRect.center = (900,25)
+    TextRect.center = (x,y)
     screen.blit(TextSurf,TextRect)
 
 def checkSnakecollision(snake,dir):
@@ -102,10 +102,10 @@ direction = 3
 snakeHead = createSnake()
 appleHead = createNewApple(snakeHead)
 score = 0
-
-
+timespeed = 100
+aiControl = False
 while running:
-    pygame.time.delay(100)
+    pygame.time.delay(timespeed)
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -115,19 +115,34 @@ while running:
     pygame.draw.rect(screen, (255,0,0), (0,0,10,1000))
     pygame.draw.rect(screen, (255,0,0), (0,990,1000,10))
     pygame.draw.rect(screen, (255,0,0), (990,0,10,1000))
-    displayMessage("Score: " + str(score))
+    displayMessage("Score: " + str(score),900,25)
+    displayMessage("Speed: " + str(timespeed),100,25)
     snakeHead.drawSelf()
     appleHead.drawApple()
     pygame.display.update()
     keys = pygame.key.get_pressed()
-    if (keys[pygame.K_w] and  direction !=2):
-        direction = 0
-    elif keys[pygame.K_d] and direction !=3:
-        direction = 1
-    elif keys[pygame.K_s] and direction !=0:
-        direction = 2
-    elif keys[pygame.K_a] and direction !=1:
-        direction = 3
+    if not aiControl:
+        if (keys[pygame.K_w] and  direction !=2):
+            direction = 0
+        elif keys[pygame.K_d] and direction !=3:
+            direction = 1
+        elif keys[pygame.K_s] and direction !=0:
+            direction = 2
+        elif keys[pygame.K_a] and direction !=1:
+            direction = 3
+    if keys[pygame.K_q]:
+        if(timespeed<10):
+            timespeed = timespeed-1
+        else:
+            timespeed = timespeed-10
+    elif keys[pygame.K_e]:
+        if(timespeed<10):
+            timespeed=timespeed+1
+        else:
+            timespeed=timespeed+10
+    if keys[pygame.K_x]:
+        aiControl = not aiControl
+    
     if checkAppleCollision(snakeHead,appleHead):
         appleHead = createNewApple(snakeHead)
         score +=1
