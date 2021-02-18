@@ -3,8 +3,19 @@ from pygame.locals import *
 import random
 import threading
 import time
+
+
+#Game Startup
 pygame.init()
 screen = pygame.display.set_mode((1000,1000), RESIZABLE)
+pygame.display.set_caption("Snake")
+running = True
+direction = 3
+score = 0
+timespeed = 1
+size = (1000,1000)
+aiControl = False
+
 
 #Class which defines each section of the snake each with its own position
 #Singly Linked to the head of the snake and are drawn recursivly 
@@ -117,26 +128,18 @@ def checkSnakecollision(snake,dir,size):
 
 
 #function used to run the thread controlling the movement of the snake
-def movementManager(snakeHead,direction,timespeed,running):
+def movementManager():
     while running:
-        time.sleep(timespeed*.001)
+        time.sleep(1/(timespeed*10))
         moveDirection(snakeHead,direction)
-#Game Startup
-pygame.display.set_caption("Snake")
-running = True
-direction = 3
+
+#starts up movment thread and final setup
 snakeHead = createSnake()
 appleHead = createNewApple(snakeHead)
-score = 0
-timespeed = 100
-size = (1000,1000)
-aiControl = False
-movementThread = threading.Thread(target=movementManager, args=[snakeHead,direction,timespeed,running])
+movementThread = threading.Thread(target=movementManager)
 movementThread.start()
-
 #Game Loop
 while running:
-    keys = pygame.key.get_pressed()
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
@@ -145,39 +148,36 @@ while running:
             size = event.dict['size']
             appleHead = createNewApple(snakeHead)
             pygame.display.update()
+        elif event.type == pygame.KEYDOWN:
+            if not aiControl:
+                if event.key==pygame.K_w and  direction !=2:
+                    direction = 0
+                elif event.key==pygame.K_d and direction !=3:
+                    direction = 1
+                elif event.key==pygame.K_s and direction !=0:
+                    direction = 2
+                elif event.key==pygame.K_a and direction !=1:
+                    direction = 3
+            else:
+                direction = 0
+                #direction = getNextMove(snakeHead,appleHead,direction,score)
+            if event.key==pygame.K_q:
+                if timespeed>1:
+                    timespeed = timespeed-1
+            elif event.key==pygame.K_e:
+                timespeed=timespeed+1
+            if event.key==pygame.K_x:
+                aiControl = not aiControl
+    screen.fill((0,0,255))
     pygame.draw.rect(screen, (255,0,0), (0,0,size[0],10))
     pygame.draw.rect(screen, (255,0,0), (0,0,10,size[1]))
     pygame.draw.rect(screen, (255,0,0), (0,size[1]-10,size[0],10))
     pygame.draw.rect(screen, (255,0,0), (size[0]-10,0,10,size[1]))
-    screen.fill((0,0,255))
     displayMessage("Score: " + str(score),900,25)
     displayMessage("Speed: " + str(timespeed),100,25)
     snakeHead.drawSelf()
     appleHead.drawApple()
     pygame.display.update()
-    if not aiControl:
-        if (keys[pygame.K_w] and  direction !=2):
-            direction = 0
-        elif keys[pygame.K_d] and direction !=3:
-            direction = 1
-        elif keys[pygame.K_s] and direction !=0:
-            direction = 2
-        elif keys[pygame.K_a] and direction !=1:
-            direction = 3
-    else:
-        direction = getNextMove(snakeHead,appleHead,direction,score)
-    if keys[pygame.K_q]:
-        if(timespeed<10):
-            timespeed = timespeed-1
-        else:
-            timespeed = timespeed-10
-    elif keys[pygame.K_e]:
-        if(timespeed<10):
-            timespeed=timespeed+1
-        else:
-            timespeed=timespeed+10
-    if keys[pygame.K_x]:
-        aiControl = not aiControl
     if checkAppleCollision(snakeHead,appleHead):
         appleHead = createNewApple(snakeHead)
         score +=1
@@ -187,11 +187,10 @@ while running:
         appleHead = createNewApple(snakeHead)
         score = 0
     
-    moveDirection(snakeHead,direction)
+    #moveDirection(snakeHead,direction)
     
     
     
-
 pygame.quit()
 
     
