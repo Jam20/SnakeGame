@@ -130,8 +130,12 @@ def checkSnakecollision(snake,dir,size):
 #function used to run the thread controlling the movement of the snake
 def movementManager():
     while running:
-        time.sleep(1/(timespeed*10))
+        if aiControl:
+            getNextMove(snakeHead,appleHead,direction,score)
         moveDirection(snakeHead,direction)
+        time.sleep(1/(timespeed*10))
+
+
 
 #starts up movment thread and final setup
 snakeHead = createSnake()
@@ -158,9 +162,6 @@ while running:
                     direction = 2
                 elif event.key==pygame.K_a and direction !=1:
                     direction = 3
-            else:
-                direction = 0
-                #direction = getNextMove(snakeHead,appleHead,direction,score)
             if event.key==pygame.K_q:
                 if timespeed>1:
                     timespeed = timespeed-1
@@ -187,7 +188,6 @@ while running:
         appleHead = createNewApple(snakeHead)
         score = 0
     
-    #moveDirection(snakeHead,direction)
     
     
     
