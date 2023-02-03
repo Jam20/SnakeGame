@@ -91,6 +91,12 @@ class Snake(Drawable):
     def increaseLength(self):
         self.isIncreasing = True
 
+    def isCollidingWithSelf(self):
+        for idx, pos in enumerate(self.positions):
+            if idx != 0 and pos == self.getHeadPosition():
+                return True
+        return False
+
 class Apple(Drawable):
 
     def eat(self, minX, minY, maxX, maxY, invalidPositions):
@@ -113,12 +119,15 @@ class GameState(Drawable):
         self.score = score
     
     def moveApple(self, size):
-        newApple = self.apple.eat(0,int(size[0]),0,int(size[1]), self.snake.positions)
+        newApple = self.apple.eat(0,0,int(size[0]),int(size[1]), self.snake.positions)
         return GameState(self.snake, newApple, self.score)
 
     def update(self, direction, size):
-        print(self.snake.getHeadPosition())
         newSnake = self.snake.move(direction)
+        snakeHead = newSnake.getHeadPosition()
+        if snakeHead.x < 1 or snakeHead.y < 1 or snakeHead.x >= size[0] or snakeHead.y >= size[1] or newSnake.isCollidingWithSelf():
+            return GameState(Snake(newSnake.drawFunc, [Pos(5,5)]), Apple(self.apple.drawFunc, Pos(0,0)),0).moveApple(size)
+        
         if newSnake.getHeadPosition() == self.apple.position:
             newSnake.increaseLength()
             newApple = self.moveApple(size).apple

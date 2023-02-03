@@ -9,10 +9,14 @@ borderColor = (255,0,0)
 backgroundColor = (0,0,255)
 snakeColor = (255,255,0)
 
+def set_screen_size(newSize):
+    global size
+    size = newSize
 #function which renders the text 
 def text_objects(text, font):
     textSurface = font.render(text, True, (0,0,0))
     return textSurface, textSurface.get_rect()
+
 
 #wrapper for the text function in order to abstract to a simple message
 def displayMessage(screen, text,x,y):
@@ -25,7 +29,7 @@ def displayMessage(screen, text,x,y):
 def drawBackground(screen, score, speed):
     screen.fill(borderColor)
     
-    pygame.draw.rect(screen, backgroundColor, (0,0,size[0]-blockSize,size[1]-blockSize))
+    pygame.draw.rect(screen, backgroundColor, (blockSize,blockSize,size[0]-2*blockSize,size[1]-2*blockSize))
     displayMessage(screen, "Score: " + str(score),900,25)
     displayMessage(screen, "Speed: " + str(speed),100,25)
 
