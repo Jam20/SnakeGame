@@ -2,7 +2,7 @@ import pygame
 from pygame.locals import *
 
 #Define Render Constants
-size = (1000,1000)
+size = (1000,790)
 blockSize = 10
 
 borderColor = (255,0,0)
