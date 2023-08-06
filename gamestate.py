@@ -82,7 +82,7 @@ class Node(Pos):
 class Path:
     def __init__(self, width: int, height: int) -> None:
         self.grid = [[Node(x, y) for x in range(width)] for y in range(height)]
-        if height % 2 == 0:
+        if height % 2 == 1:
             for y, row in enumerate(self.grid):
                 for x, node in enumerate(row):
                     if x == 1 and y != 1:
@@ -114,12 +114,12 @@ class Path:
 
 # used to define a object to be drawn to the screen
 class Drawable:
-    def __init__(self, drawFunc: Callable[[Surface, Pos], None], pos: Pos):
-        self.drawFunc = drawFunc
+    def __init__(self, draw_func: Callable[[Surface, Pos], None], pos: Pos):
+        self.draw_func = draw_func
         self.position = pos
 
     def draw_self(self, screen: Surface) -> None:
-        self.drawFunc(screen, self.position)
+        self.draw_func(screen, self.position)
 
 
 # defines a direction for an object to travel in
@@ -130,17 +130,19 @@ class Snake(Drawable):
     def __init__(
         self, drawFunc: Callable[[Surface, Pos], None], posList: list[Pos]
     ):
-        def draw_snake(screen: Surface, pos: Pos):
-            for position in posList:
-                drawFunc(screen, position)
-
-        super().__init__(draw_snake, posList[0])
-        self.drawFunc = drawFunc
+        super().__init__(drawFunc, posList[0])
         self.positions = posList
         self.isIncreasing = False
 
+    def draw_self(self, screen: Surface) -> None:
+        for position in self.positions:
+            self.draw_func(screen, position)
+    
     def get_head_position(self) -> Pos:
         return self.positions[0]
+    
+    def get_length(self) -> int:
+        return len(self.positions)
 
     def move(self, direction: Direction):
         posCopy = self.positions.copy()
@@ -148,7 +150,7 @@ class Snake(Drawable):
         posCopy.insert(0, newPos)
         if not self.isIncreasing:
             posCopy.pop(-1)
-        return Snake(self.drawFunc, posCopy)
+        return Snake(self.draw_func, posCopy)
 
     def increase_length(self) -> None:
         self.isIncreasing = True
@@ -175,7 +177,7 @@ class Apple(Drawable):
                     isInvalidPos = True
                     break
 
-        return Apple(self.drawFunc, newPos)
+        return Apple(self.draw_func, newPos)
 
 
 class GameState(Drawable):
@@ -194,7 +196,8 @@ class GameState(Drawable):
         # type: (Direction, tuple[int, int], Path) -> GameState
         dir = dir
         if dir == Direction.AI:
-            dir = path.get_direction_for_node(self.snake.get_head_position())
+            dir = get_best_move(self, size[0], size[1])
+            # dir = path.get_direction_for_node(self.snake.get_head_position())
 
         newSnake = self.snake.move(dir)
         snakeHead = newSnake.get_head_position()
@@ -206,8 +209,8 @@ class GameState(Drawable):
             or newSnake.is_colliding_with_self()
         ):
             return GameState(
-                Snake(newSnake.drawFunc, [Pos(5, 5)]),
-                Apple(self.apple.drawFunc, Pos(0, 0)),
+                Snake(newSnake.draw_func, [Pos(5, 5)]),
+                Apple(self.apple.draw_func, Pos(0, 0)),
                 0,
             ).move_apple(size)
 
@@ -221,3 +224,42 @@ class GameState(Drawable):
     def draw_self(self, screen):
         self.snake.draw_self(screen)
         self.apple.draw_self(screen)
+
+
+def get_best_move(game_state: GameState, width: int, height: int):
+    snake_pos = game_state.snake.get_head_position()
+    snake_tail_pos = game_state.snake.positions[-1]
+    apple_pos = game_state.apple.position
+    move = get_default_move(snake_pos, width, height)
+    if snake_tail_pos.y < snake_pos.y and snake_tail_pos.x > 1:
+        if snake_pos.x == 2 and apple_pos.y < snake_pos.y:
+            move = Direction.LEFT
+        elif snake_pos.x == width - 1 and apple_pos.y - 1 > snake_pos.y:
+            move = Direction.DOWN
+    return move
+
+
+def get_distance(start: Pos, end: Pos, width: int, height: int) -> int:
+    distance = 0
+    while start != end:
+        move = get_default_move(start, width, height)
+        start = move.get_new_position(start)
+        distance += 1
+    return distance
+
+
+def get_default_move(pos: Pos, width: int, height: int) -> Direction:
+    x, y = pos.x, pos.y
+    if x == 1 and y != 1:
+        return Direction.UP
+    elif y == height - 1:
+        return Direction.LEFT
+    elif x == width - 1 and y % 2 == 1:
+        return Direction.DOWN
+    elif x == 2 and y % 2 == 0:
+        return Direction.DOWN
+    elif y % 2 == 0:
+        return Direction.LEFT
+    else:
+        return Direction.RIGHT
+

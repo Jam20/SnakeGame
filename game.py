@@ -50,10 +50,10 @@ while running:
             gameState = gameState.move_apple(gameSize)
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_q and speed > 1:
-                speed -= 1
+                speed /= 2
                 continue
             elif event.key == pygame.K_e:
-                speed += 1
+                speed *= 2
                 continue
             if isHumanControl:
                 if event.key == pygame.K_r:
@@ -65,4 +65,4 @@ while running:
     if not isHumanControl:
         direction = Direction.AI
     gameSize = (size[0] // 10 - 1, size[1] // 10 - 1)
-    render_frame(screen, gameState, speed)
+    render_frame(screen, gameState, int(speed))

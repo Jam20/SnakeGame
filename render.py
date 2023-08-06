@@ -2,7 +2,7 @@ from pygame import Surface, Rect, draw, font, display
 from gamestate import GameState, Pos
 
 # Define Render Constants
-size = (1000, 790)
+size = (1000, 780)
 blockSize = 10
 
 borderColor = (255, 0, 0)
@@ -30,7 +30,7 @@ def display_message(screen: Surface, text: str, x: int, y: int) -> None:
 
 
 # Defining draw functions for different parts of the game
-def draw_background(screen: Surface, score: int, speed: int) -> None:
+def draw_background(screen: Surface) -> None:
     screen.fill(borderColor)
 
     def border(size: int) -> int:
@@ -39,10 +39,8 @@ def draw_background(screen: Surface, score: int, speed: int) -> None:
     draw.rect(
         screen,
         backgroundColor,
-        (blockSize, blockSize, border(size[0]), border(size[0])),
+        (blockSize, blockSize, border(size[0]), border(size[1])),
     )
-    display_message(screen, "Score: " + str(score), 900, 25)
-    display_message(screen, "Speed: " + str(speed), 100, 25)
 
 
 def draw_snake_block(screen: Surface, pos: Pos):
@@ -59,6 +57,8 @@ def drawBlock(screen: Surface, pos: Pos, color: tuple[int, int, int]):
 
 
 def render_frame(screen: Surface, gameState: GameState, speed: int):
-    draw_background(screen, gameState.score, speed)
+    draw_background(screen)
     gameState.draw_self(screen)
+    display_message(screen, "Score: " + str(gameState.score), 900, 25)
+    display_message(screen, "Speed: " + str(speed), 100, 25)
     display.update()
