@@ -127,9 +127,7 @@ class Drawable:
 
 # used to define a snake in the game based on the positions of all its blocks
 class Snake(Drawable):
-    def __init__(
-        self, drawFunc: Callable[[Surface, Pos], None], posList: list[Pos]
-    ):
+    def __init__(self, drawFunc: Callable[[Surface, Pos], None], posList: list[Pos]):
         super().__init__(drawFunc, posList[0])
         self.positions = posList
         self.isIncreasing = False
@@ -137,10 +135,10 @@ class Snake(Drawable):
     def draw_self(self, screen: Surface) -> None:
         for position in self.positions:
             self.draw_func(screen, position)
-    
+
     def get_head_position(self) -> Pos:
         return self.positions[0]
-    
+
     def get_length(self) -> int:
         return len(self.positions)
 
@@ -208,6 +206,9 @@ class GameState(Drawable):
             or snakeHead.y >= size[1]
             or newSnake.is_colliding_with_self()
         ):
+            print(
+                f"died in state: {last_state} apple: {self.apple.position} head: {self.snake.position} direction: {dir}"
+            )
             return GameState(
                 Snake(newSnake.draw_func, [Pos(5, 5)]),
                 Apple(self.apple.draw_func, Pos(0, 0)),
@@ -226,40 +227,181 @@ class GameState(Drawable):
         self.apple.draw_self(screen)
 
 
+class State(Enum):
+    DEFAULT = 0
+    DOWNSEEK = 1
+    UPSEEK = 2
+
+
+upseek_rows = set()
+downseek_rows = set()
+last_state = State.DEFAULT
+
+
 def get_best_move(game_state: GameState, width: int, height: int):
+    global last_state
     snake_pos = game_state.snake.get_head_position()
     snake_tail_pos = game_state.snake.positions[-1]
     apple_pos = game_state.apple.position
-    move = get_default_move(snake_pos, width, height)
-    if snake_tail_pos.y < snake_pos.y and snake_tail_pos.x > 1:
-        if snake_pos.x == 2 and apple_pos.y < snake_pos.y:
-            move = Direction.LEFT
-        elif snake_pos.x == width - 1 and apple_pos.y - 1 > snake_pos.y:
-            move = Direction.DOWN
+    state = get_new_state(
+        snake_pos,
+        snake_tail_pos,
+        game_state.snake.get_length(),
+        apple_pos,
+        last_state,
+        width,
+    )
+    move = Direction.NONE
+    match state:
+        case State.DEFAULT:
+            move = get_default_move(snake_pos, width, height)
+        case State.DOWNSEEK:
+            move = get_downseek_move(snake_pos, apple_pos, width, height)
+        case State.UPSEEK:
+            move = get_upseek_move(snake_pos, apple_pos, width, height)
+    last_state = state
     return move
 
 
-def get_distance(start: Pos, end: Pos, width: int, height: int) -> int:
-    distance = 0
-    while start != end:
-        move = get_default_move(start, width, height)
-        start = move.get_new_position(start)
-        distance += 1
-    return distance
+def get_new_state(
+    snake_pos: Pos,
+    snake_tail_pos: Pos,
+    snake_length: int,
+    apple_pos: Pos,
+    last_state: State,
+    width: int,
+) -> State:
+    global downseek_rows
+    match last_state:
+        case State.DEFAULT:
+            if snake_pos.y > snake_tail_pos.y and snake_tail_pos.x > 1 or snake_pos.y in upseek_rows:
+                # print("Transition to Down seek")
+                return State.DOWNSEEK
+            else:
+                return State.DEFAULT
+        case State.DOWNSEEK:
+            if snake_pos.x == 1:
+                # print("Transition to UpSeek")
+                upseek_rows.clear()
+                return State.UPSEEK
+            else:
+                downseek_rows.add(apple_pos.y)
+                return State.DOWNSEEK
+        case State.UPSEEK:
+            if (
+                snake_pos.y == 1
+                or (apple_pos.y < snake_tail_pos.y and snake_pos.x == 1)
+                or (
+                    apple_pos.y in downseek_rows
+                    or apple_pos.y + 1 in downseek_rows
+                    or apple_pos.y - 1 in downseek_rows
+                )
+                or apple_pos.y * width < snake_length
+            ):
+                # print("Transition to Default")
+                downseek_rows.clear()
+                return State.DEFAULT
+            else:
+                upseek_rows.add(apple_pos.y)
+                return State.UPSEEK
+    return State.DEFAULT
+
+
+def get_downseek_move(
+    snake_pos: Pos, apple_pos: Pos, width: int, height: int
+) -> Direction:
+    x, y = snake_pos.x, snake_pos.y
+    if y == 1:
+        if x == width - 1:
+            return Direction.DOWN
+        else:
+            return Direction.RIGHT
+    elif y == height - 1:
+        if x == 1:
+            return Direction.UP
+        else:
+            return Direction.LEFT
+    elif y % 2 == 0:
+        if x == 1:
+            return Direction.UP
+        elif x == 2:
+            if apple_pos.y < y:
+                return Direction.LEFT
+            else:
+                return Direction.DOWN
+        elif x == width - 1:
+            if apple_pos.y - 1 > y:
+                return Direction.DOWN
+            else:
+                return Direction.LEFT
+        else:
+            return Direction.LEFT
+    else:
+        if x == 1:
+            return Direction.UP
+        elif x == 2:
+            if apple_pos.y < y:
+                return Direction.LEFT
+            else:
+                return Direction.RIGHT
+        elif x == width - 1:
+            return Direction.DOWN
+        else:
+            return Direction.RIGHT
+
+
+def get_upseek_move(snake_pos: Pos, apple_pos: Pos, width: int, height: int):
+    x, y = snake_pos.x, snake_pos.y
+    if y == 1:
+        if x == width - 1:
+            return Direction.DOWN
+        else:
+            return Direction.RIGHT
+    elif y == height - 1:
+        if x == 1:
+            return Direction.UP
+        else:
+            return Direction.LEFT
+    elif y % 2 == 0:
+        if x == 1:
+            return Direction.UP
+        else:
+            return Direction.LEFT
+    else:
+        if x == 1:
+            if abs(y - apple_pos.y) <= 1 and apple_pos.x > 1:
+                return Direction.RIGHT
+            else:
+                return Direction.UP
+        elif x == width - 2:
+            return Direction.UP
+        else:
+            return Direction.RIGHT
 
 
 def get_default_move(pos: Pos, width: int, height: int) -> Direction:
     x, y = pos.x, pos.y
-    if x == 1 and y != 1:
-        return Direction.UP
+    if y == 1:
+        if x == width - 1:
+            return Direction.DOWN
+        else:
+            return Direction.RIGHT
     elif y == height - 1:
-        return Direction.LEFT
-    elif x == width - 1 and y % 2 == 1:
-        return Direction.DOWN
-    elif x == 2 and y % 2 == 0:
-        return Direction.DOWN
+        if x == 1:
+            return Direction.UP
+        else:
+            return Direction.LEFT
     elif y % 2 == 0:
-        return Direction.LEFT
+        if x == 1:
+            return Direction.UP
+        elif x == 2:
+            return Direction.DOWN
+        else:
+            return Direction.LEFT
     else:
-        return Direction.RIGHT
-
+        if x == 1:
+            return Direction.UP
+        elif x == width - 1:
+            return Direction.DOWN
+        else:
+            return Direction.RIGHT
